@@ -25,11 +25,39 @@ def load_credentials():
     try:
         with open('tokens.txt', 'r') as file:
             credentials_list = file.readlines()
-        credentials = [cred.strip().split('|') for cred in credentials_list]
+        credentials = [cred.strip() for cred in credentials_list]
         return credentials
     except FileNotFoundError:
         print("File 'tokens.txt' tidak ditemukan. Pastikan file tersebut ada di direktori yang sama dengan script.")
         return []
+
+def fetch_task_ids(apikey, authorization):
+    url = 'https://jjvnmoyncmcewnuykyid.supabase.co/rest/v1/rpc/get_filtered_tasks'
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9',
+        'apikey': apikey,
+        'authorization': f'Bearer {authorization}',
+        'content-profile': 'public',
+        'content-type': 'application/json',
+        'origin': 'https://dot.dapplab.xyz',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
+        'x-client-info': 'postgrest-js/1.9.2',
+        'x-telegram-user-id': '6726676206'
+    }
+    data = {'platform': 'ios', 'locale': 'en', 'is_premium': False}
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        tasks = response.json()
+        task_ids = [task['id'] for task in tasks]
+        return task_ids
+    else:
+        print(f"Failed to fetch tasks, status code: {response.status_code}")
+        return []
+    
 
 def add_attempts(lvl, apikey, authorization,current_level):
     url = 'https://jjvnmoyncmcewnuykyid.supabase.co/rest/v1/rpc/add_attempts'
@@ -71,7 +99,7 @@ def add_attempts(lvl, apikey, authorization,current_level):
         except Exception as e:
             sys.stdout.write(f"Error while adding attempts: {e}\n")
 def auto_clear_task(apikey, authorization):
-    task_ids = [1, 2, 57, 40, 41, 39, 36, 42]  # ID tugas yang akan diproses
+    task_ids = fetch_task_ids(apikey, authorization)
     base_url = 'https://jjvnmoyncmcewnuykyid.supabase.co/rest/v1/rpc/complete_task'
     headers = {
         'accept': '*/*',
@@ -167,6 +195,41 @@ def auto_upgrade_daily_attempt():
     return 0  # Mengembalikan 0 jika user memilih 'n'
 
 
+def auto_gacha(apikey, authorization, coins):
+    url = 'https://jjvnmoyncmcewnuykyid.supabase.co/rest/v1/rpc/try_your_luck'
+    headers = {
+        'accept': '*/*',
+        'accept-language': 'en-ID,en-US;q=0.9,en;q=0.8,id;q=0.7',
+        'apikey': apikey,
+        'authorization': f'Bearer {authorization}',
+        'cache-control': 'no-cache',
+        'content-profile': 'public',
+        'content-type': 'application/json',
+        'origin': 'https://dot.dapplab.xyz',
+        'pragma': 'no-cache',
+        'priority': 'u=1, i',
+        'referer': 'https://dot.dapplab.xyz/',
+        'sec-ch-ua': '"Microsoft Edge";v="125", "Chromium";v="125", "Not.A/Brand";v="24", "Microsoft Edge WebView2";v="125"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'cross-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
+        'x-client-info': 'postgrest-js/1.9.2',
+    }
+    data = {'coins': coins}
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        response_data = response.json()
+        if response_data.get('success', False):
+            print(f"{Fore.GREEN+Style.BRIGHT}[ Gacha ] : Menang")
+        else:
+            print(f"{Fore.RED+Style.BRIGHT}[ Gacha ] : Gagal")
+    else:
+        print(f"{Fore.RED+Style.BRIGHT}[ Gacha ] : Gagal dengan status code {response.status_code}")
+
+# Tambahkan pemanggilan fungsi ini di dalam loop utama atau sesuai kebutuhan
 
 def main():
     print_welcome_message()
@@ -179,25 +242,25 @@ def main():
     jumlah_upgrade = auto_upgrade_daily_attempt()  # Menangkap jumlah upgrade dari fungsi
     upgrade_success = {}  # Dictionary untuk menyimpan status upgrade
 
-    while True:  # Loop eksternal yang membuat program berjalan terus menerus
-        for index, (apikey, authorization) in enumerate(credentials):
-            
+    apikey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqdm5tb3luY21jZXdudXlreWlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDg3MDE5ODIsImV4cCI6MjAyNDI3Nzk4Mn0.oZh_ECA6fA2NlwoUamf1TqF45lrMC0uIdJXvVitDbZ8'
 
+    while True:  # Loop eksternal yang membuat program berjalan terus menerus
+        for index, authorization in enumerate(credentials):
             info = get_user_info(apikey, authorization)
             print(f"{Fore.CYAN+Style.BRIGHT}============== [ Akun | {info['first_name']} ] ==============")
-            if upgrade_success.get(apikey, False):  # Cek jika sudah sukses upgrade, skip ke akun berikutnya
-                if jumlah_upgrade > 0 and not upgrade_success.get(apikey, False):  # Memeriksa jika jumlah_upgrade lebih dari 0 dan belum sukses upgrade
+
+            if not upgrade_success.get(authorization, False):  # Cek jika belum sukses upgrade
+                if jumlah_upgrade > 0:  # Memeriksa jika jumlah_upgrade lebih dari 0
                     for _ in range(jumlah_upgrade):
                         current_level = info['daily_attempts']
-                        success = add_attempts(0, apikey, authorization,current_level)
+                        success = add_attempts(0, apikey, authorization, current_level)
                         if success:
-                            upgrade_success[apikey] = True  # Simpan status upgrade berhasil
-                            print(f"{Fore.GREEN+Style.BRIGHT}[ Upgrade ] : Sukses                   ", flush=True)
+                            upgrade_success[authorization] = True  # Simpan status upgrade berhasil
+                            print(f"{Fore.GREEN+Style.BRIGHT}\r[ Upgrade ] : Sukses                           ", flush=True)
                             break
                         else:
-                            print(f"{Fore.RED+Style.BRIGHT}[ Upgrade ] : Gagal                  ", flush=True)
-
-            # info = get_user_info(apikey, authorization)
+                            print(f"{Fore.RED+Style.BRIGHT}\r[ Upgrade ] : Gagal                          ", flush=True)
+            
             if info:
                 if clear_task == 'y':
                     auto_clear_task(apikey, authorization)
@@ -206,15 +269,18 @@ def main():
                 print(f"{Fore.BLUE+Style.BRIGHT}[ Energi ] : {info['daily_attempts']}")
                 print(f"{Fore.BLUE+Style.BRIGHT}[ Limit Energi ] : {info['limit_attempts']}")
                 print(f"{Fore.BLUE+Style.BRIGHT}[ Multiple Click Level ] : {info['multiple_clicks']}")
+                auto_gacha(apikey, authorization, 150000)
                 energy = info['daily_attempts']
                 if energy > 0:
                     for _ in range(energy):
                         print(f"{Fore.BLUE+Style.BRIGHT}\r[ Tap ] : Tapping..", end="" , flush=True)
                         time.sleep(3)
                         save_coins(20000, apikey, authorization)
-                        print(f"{Fore.GREEN+Style.BRIGHT}\r[ Tap ] : Sukses         ", flush=True)
+                        print(f"{Fore.GREEN+Style.BRIGHT}\r[ Tap ] : Sukses             ", flush=True)
                 else:
                     print(f"{Fore.RED+Style.BRIGHT}Energi Anda habis. Menunggu pengisian ulang energi...")
+                
+                
             else:
                 print("\r{Fore.RED+Style.BRIGHT}Token akses tidak valid, lanjut ke akun berikutnya.")
 
