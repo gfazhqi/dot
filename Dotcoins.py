@@ -247,7 +247,7 @@ def main():
     while True:  # Loop eksternal yang membuat program berjalan terus menerus
         for index, authorization in enumerate(credentials):
             info = get_user_info(apikey, authorization)
-            print(f"{Fore.CYAN+Style.BRIGHT}============== [ Akun | {info['first_name']} ] ==============")
+            print(f"{Fore.CYAN+Style.BRIGHT}============== [ Akun {index} | {info['first_name']} ] ==============")
 
             if not upgrade_success.get(authorization, False):  # Cek jika belum sukses upgrade
                 if jumlah_upgrade > 0:  # Memeriksa jika jumlah_upgrade lebih dari 0
