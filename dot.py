@@ -370,7 +370,7 @@ def main():
         time.sleep(2)
         # Hitung mundur selama 30 detik setelah semua akun telah diproses
         print(f"{Fore.CYAN+Style.BRIGHT}==============Semua akun telah diproses=================")
-        for i in range(300, 0, -1):
+        for i in range(3900, 0, -1):
             sys.stdout.write(f"\rMemproses ulang semua akun dalam {i} detik...")
             sys.stdout.flush()
             time.sleep(1)
